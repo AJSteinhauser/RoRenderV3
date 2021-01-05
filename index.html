@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+    <meta http-equiv="x-ua-compatible" content="ie=edge"/>
+    <title>RoRender</title>
+    <!-- MDB icon -->
+    <link rel="icon" href="img/mdb-favicon.ico" type="image/x-icon"/>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.11.2/css/all.css"/>
+    <!-- Google Fonts Roboto -->
+    <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+    />
+    <!-- MDB -->
+    <link rel="stylesheet" href="css/mdb.min.css"/>
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="css/custom.css">
+</head>
+<body>
+<!-- Start your project here-->
+<div class="container">
+    <div class="row justify-content-center py-4">
+        <div class="col-md-7">
+            <div class="bg-image">
+                <img id="main-img" class="img-fluid" src="./img/grid.png" alt="" style="border-radius: 10px;">
+                <img id="overlay-img" class="mask" src="./img/grid.png" alt="" style="border-radius: 10px;">
+            </div>
+            <button class="mt-4 btn-lg btn btn-white" id="help">Help</button>
+            <button class="mt-4 btn-lg btn btn-link float-end" id="exportImage" disabled>
+            <i class="fas fa-arrow-circle-down"></i>
+            Download Image</button>
+            <!--
+            <p class="d-inline-block lead float-end mt-4 fw-bold text-muted">Export Image</p>
+            -->
+
+        </div>
+        <div class="col-md-5">
+            <div class="card text-center mb-4">
+                <div class="card-body d-flex justify-content-center align-items-center">
+                    <div class="progress" data-percentage="0" id="datapercentage">
+                        <span class="progress-left">
+                            <span class="progress-bar"></span>
+                        </span>
+                        <span class="progress-right">
+                            <span class="progress-bar"></span>
+		                </span>
+                        <div class="progress-value">
+                            <div class="fw-bold" style="font-size: 42px;"id="datapercentagetext">
+                                0%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card text-center">
+                <div class="card-body d-flex justify-content-center align-items-center">
+                    <h1 style="font-size: 42px;"id="timer">00:00:00</h1>
+                </div>
+            </div>
+            <button class="btn-lg btn btn-primary btn-block mt-4"id="startServer">Start Server</button>
+        </div>
+    </div>
+</div>
+<!-- End your project here-->
+</body>
+
+<!-- MDB -->
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/mdb.min.js"></script>
+<!-- Custom scripts -->
+<script type="text/javascript">
+    window.$ = window.jQuery = require('jquery');
+    
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    let serverStarted = false;
+    let timerRunning = false;
+    if ($(window).width() > 600){
+        $('.card').css('height', ($('#main-img').height() / 2 - 12) + 'px');
+    }
+    // Button Events
+    // include the ipc module to communicate with main process.
+    const ipcRenderer = require('electron').ipcRenderer; 
+    const ipcMain = require("electron").ipcMain;
+    
+    //help button
+    const helpClick = document.getElementById('help');
+    helpClick.addEventListener('click', function () {
+        var arg ="secondparam";
+     
+        ipcRenderer.send("helpClick", arg);
+    });
+
+    //export image
+    const exportImage = document.getElementById('exportImage');
+    exportImage.addEventListener('click', function () {
+        var arg ="secondparam";
+     
+        ipcRenderer.send("exportImage", arg); 
+    });
+
+    //Start server
+    const startServer = document.getElementById('startServer');
+    startServer.addEventListener('click', function () {
+        if (!serverStarted){
+            serverStarted = true;
+            var arg ="secondparam";
+         
+            ipcRenderer.send("startServer", arg);
+            setTimeout(() => { startServer.disabled = true;},500);
+        }
+    });
+
+    const timer = document.getElementById('timer');
+    ipcRenderer.on("startTimer",(e,item)=> {
+        if (!timerRunning){
+            timerRunning = true;
+            var x = 0;
+            var check = function(){
+                if(!timerRunning){
+                    return true;
+                }
+                else {
+                    x = x + 1;
+                    
+                    var timeString = new Date(x * 1000).toISOString().substr(11, 8)
+                    timer.innerHTML = timeString;
+                    setTimeout(check, 1000); // check again in a second
+                }
+            }
+            check();
+            console.log("TEST");
+        } 
+    });
+
+    const datapercentage = document.getElementById('datapercentage');
+    const datatextpercentage = document.getElementById('datapercentagetext');
+    ipcRenderer.on("updatePercent",function(e,item){
+        datapercentage.setAttribute("data-percentage", item)
+        datatextpercentage.innerHTML = item.toString().concat("%");
+        if (item == 100){
+            timerRunning = false;
+            exportImage.disabled = false;
+        }
+    });
+
+
+    const overlayImage = document.getElementById('overlay-img');
+    ipcRenderer.on("updateImage",function(e,item){
+        overlayImage.src = item;
+    });
+
+</script>
+
+</html>

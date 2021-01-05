@@ -1,0 +1,32 @@
+{
+  "name": "RoRender",
+  "version": "1.0.0",
+  "description": "An application paired with a roblox plugin to create orthographic projections from the roblox workspace",
+  "main": "main.js",
+  "author": "A.J. Steinhauser",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "electron-unhandled": "^3.0.2",
+    "express": "^4.17.1",
+    "fs": "^0.0.1-security",
+    "jimp": "^0.16.1",
+    "jquery": "^3.5.1",
+    "materialize-css": "^1.0.0",
+    "path": "^0.12.7",
+    "tmp": "^0.2.1",
+    "unhandled": "^0.1.1",
+    "url": "^0.11.0"
+  },
+  "devDependencies": {
+    "electron": "^11.0.3",
+    "electron-builder": "^22.9.1",
+    "electron-packager": "^15.1.0"
+  },
+  "scripts": {
+    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=img/icons/mac/icon.icns --prune=true --out=release-builds",
+    "package-win": "electron-packager . RoRender --platform=win32 --arch=x64 --electronVersion=10.1.1",
+    "package-linux": "electron-packager . RoRender --overwrite --asar --platform=linux --arch=x64 --icon=assets/icons/png/1024x1024.png --prune=true --out=release-builds",
+    "start": "electron ."
+  }
+}
