@@ -24,9 +24,19 @@
     "electron-packager": "^15.1.0"
   },
   "scripts": {
-    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=img/icons/mac/icon.icns --prune=true --out=release-builds",
-    "package-win": "electron-packager . RoRender --platform=win32 --arch=x64 --electronVersion=10.1.1",
-    "package-linux": "electron-packager . RoRender --overwrite --asar --platform=linux --arch=x64 --icon=assets/icons/png/1024x1024.png --prune=true --out=release-builds",
-    "start": "electron ."
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.electron.RoRender",
+    "mac": {
+      "target": "dmg",
+      "icon": "./img/icons/mac/icon.icns"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "./img/icons/win/icon.ico",
+      "legalTrademarks": "Open Source"
+    }
   }
 }
