@@ -36,17 +36,31 @@ tmp.dir(function _tempDirCreated(err, path, cleanupCallback) {
 
 
 app.on("ready",function(){
-    mainWindow = new BrowserWindow({
-        webPreferences: {
-            nodeIntegration: true
-        },
-        show: false,
-        resizable: false,
-        height: 540,
-        width: 768,
-        
+    var isWin = process.platform === "win32";
+    if (!isWin){
+        mainWindow = new BrowserWindow({
+            webPreferences: {
+                nodeIntegration: true
+            },
+            show: false,
+            resizable: false,
+            height: 540,
+            width: 768,
+            
 
-    });
+        });
+    }
+    else{
+        mainWindow = new BrowserWindow({
+            webPreferences: {
+                nodeIntegration: true
+            },
+            show: false,
+            resizable: false,
+            height: 550,
+            width: 780,
+        }); 
+    }
 
     mainWindow.once("ready-to-show", () =>{
         mainWindow.show()
@@ -74,47 +88,10 @@ app.on("ready",function(){
 });
 
 
-//Create help window
-function createHelpWindow(){
-    if (helpWindow == null){
-        helpWindow = new BrowserWindow({
-            width: 300,
-            height: 200,
-            title: "Help",
-            webPreferences: {
-                nodeIntegration: true
-            },
-            show: false,
-            frame: false,
-            resizable: false,
-            hasShadow: true
-        });
-
-
-        helpWindow.loadURL(url.format({
-            pathname: path.join(__dirname, "helpWindow.html"),
-            protocol: "file:",
-            slashes: true,
-        }));
-
-        //Garbage collection
-        helpWindow.on("close",function(){
-            helpWindow = null;
-        });
-
-
-        helpWindow.once("ready-to-show", () =>{
-            helpWindow.show()
-        });
-    }
-}
-
-
 //Catch help button click
 ipcMain.on("helpClick",function(e,item){
     var arg = "secondparam";
     shell.openExternal("https://devforum.roblox.com/t/rorender-minimap-creator/963288")
-    //createHelpWindow();
 });
 
 //Catch start server click
@@ -125,7 +102,15 @@ ipcMain.on("startServer",function(e,item){
         if (percent > 0){
             mainWindow.webContents.send("startTimer", "arg");
             mainWindow.webContents.send("updatePercent", percent);
-            mainWindow.webContents.send("updateImage",tmpdir.concat("/img",render.getYValue(),".png"));
+            try {
+                var path = tmpdir.concat("/img",render.getYValue(),".png");
+                if (fs.existsSync(path)) {
+                    mainWindow.webContents.send("updateImage",path);
+                }
+            } 
+            catch(err) {
+                
+            }
         }
         if(percent == 100){
             return true;
