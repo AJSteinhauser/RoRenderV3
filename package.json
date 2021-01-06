@@ -25,7 +25,8 @@
   },
   "scripts": {
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "start": "electron ."
   },
   "build": {
     "appId": "com.electron.RoRender",
