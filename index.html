@@ -132,7 +132,6 @@
                 }
             }
             check();
-            console.log("TEST");
         } 
     });
 
@@ -150,7 +149,7 @@
 
     const overlayImage = document.getElementById('overlay-img');
     ipcRenderer.on("updateImage",function(e,item){
-        overlayImage.src = item;
+        overlayImage.src = item + "?t=" + Date.now().toString();
     });
 
 </script>

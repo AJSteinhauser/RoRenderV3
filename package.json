@@ -9,17 +9,19 @@
     "body-parser": "^1.19.0",
     "electron-unhandled": "^3.0.2",
     "express": "^4.17.1",
+    "fastify": "^4.3.0",
     "fs": "^0.0.1-security",
     "jimp": "^0.16.1",
     "jquery": "^3.5.1",
     "materialize-css": "^1.0.0",
     "path": "^0.12.7",
+    "sharp": "^0.30.7",
     "tmp": "^0.2.1",
     "unhandled": "^0.1.1",
     "url": "^0.11.0"
   },
   "devDependencies": {
-    "electron": "^11.0.3",
+    "electron": "^11.5.0",
     "electron-builder": "^22.9.1",
     "electron-packager": "^15.1.0"
   },

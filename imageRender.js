@@ -1,95 +1,110 @@
+"use strict";
 
+// -- RoRenderV3 Server -- \\
+// -- By StrategicPlayZ -- \\
+// Inspired by reteach and Widgeon.
 
-const express = require("express");
-const bodyParser = require("body-parser");
-const Jimp = require("jimp");
-const fs = require("fs");
+// Fastify for setting up a server. Sharp for creating the render image.
+const fastify = require("fastify")();
+const sharp = require("sharp");
 
-const port = 8081;
+let percentComplete = 0;
+let latestImage = 1;
 
-const app = express();
+let lastRenderTime = Date.now();
 
-const jsonParser = bodyParser.json({limit:"10mb"});
+let tmpdir = null;
 
-let imageData = [
+// Stores the render data for the current render.
+let render = {
+    imageSize: { x: 0, y: 0 },
+    numPixels: 0,
 
-];
-
-let xSize = 0;
-let ySize = 0;
-let y = 0;
-
-let renderFinished = false;
-
-var tmpdir;
-
-
-
-function start(tmp){
-	tmpdir = tmp;
-	let linesPerAssign = 2;
-	app.post("/requests", jsonParser, (req, res) => {
-		if (req.body[0] == "RENDER_START") {
-			console.log("Started");
-			y = 0;
-			xSize = req.body[1]
-			ySize = req.body[2]
-			linesPerAssign = req.body[3]
-			imageData = []
-			console.log("RENDER_START", xSize, ySize)
-		} else if (req.body[0] == "RENDER_END") {
-			console.log("RENDER_END")
-			console.log("READY TO GENERATE IMAGE")
-
-			renderFinished = true;
-
-		} else {
-			console.log("LINE_RECEIVED: " + ((y + linesPerAssign) + "/" + ySize))
-			
-			for (i = 0; i < linesPerAssign; i++) {
-				imageData[y] = []
-				for (x = (xSize*i); x < ((xSize*i)+xSize); x++) {
-					imageData[y].push(Jimp.rgbaToInt(req.body[x][0], req.body[x][1], req.body[x][2], req.body[x][3]))
-				}
-				y++
-			}
-			exportimage(tmpdir.concat("/img",y.toString(),".png"));
-		}
-		res.send(".")
-	});
-	app.get("/requests", (req, res) => {
-		res.send("PORT IS ACTIVE.")
-	})
-
-	const listener = app.listen(port, "localhost", () => {console.log("\"Ro-Render Remastered\" is now listening on \"http://localhost:8081/requests\".")});
+    pixelData: new Uint8Array(),
+    nextIndex: 0,
 }
 
 function exportimage(path){
-	let image = new Jimp(xSize, ySize, function(err, image) {
-		if (err) throw err;
-
-		imageData.forEach((row, y) => {
-			row.forEach((color, x) => {
-				image.setPixelColor(color, x, y);
-			});
-		});
-
-		image.write(path, (err) => {
-			if (err) throw err;
-			console.log("DONE")
-		});
-	});
-}
-
-function getYValue(){
-	return y;
+	const image = sharp(render.pixelData, {
+        raw: {
+            width: render.imageSize.x,
+            height: render.imageSize.y,
+            channels: 4,
+        }
+    });
+	image.toFile(path)
 }
 
 function getCompleationPercent(){
-	if (ySize == 0){
-		return 0;
-	}
-	return Math.ceil((y/ySize)* 100);
+	return Math.ceil(percentComplete);
 }
 
-module.exports = {start,exportimage,getCompleationPercent,getYValue};
+function getLatestImage(){
+	return latestImage; 
+}
+
+// Starts the server.
+function start(tmp) {
+	tmpdir = tmp;
+	percentComplete = 0;
+	fastify.listen({ port: 8081 }, (err, address) => {
+		if (err) {
+			console.error(err);
+			process.exit();
+		}
+		console.log(`Server is now listening on address: ${address}`);
+		
+	})
+
+	// Get request for if the user opens the url in their web browser.
+	fastify.get("/", (request, reply) => {
+		reply.send("RoRenderV3 server is running.");
+	})
+
+	// Resets the render data and sets it to the new image size.
+	fastify.post("/render-begin", (request, reply) => {
+		console.log("Render begin:");
+	
+		render.imageSize = request.body.imageSize;
+		render.numPixels = (render.imageSize.x * render.imageSize.y);
+		render.pixelData = new Uint8Array(render.numPixels * 4);
+		render.nextIndex = 0;
+	
+		reply.send();
+	})
+
+	// Stores the received pixel data in the render data.
+	fastify.post("/data", (request, reply) => {
+		for (let pixelComponent of request.body)
+			render.pixelData[render.nextIndex++] = pixelComponent;
+		
+		percentComplete = ((((render.nextIndex - 1) / 4) / render.numPixels) * 100);
+
+		if (Date.now() - lastRenderTime > 1000){
+			
+			lastRenderTime = Date.now();
+			const image = sharp(render.pixelData, {
+				raw: {
+					width: render.imageSize.x,
+					height: render.imageSize.y,
+					channels: 4,
+				}
+			});
+			image.toFile(tmpdir.concat("/img",".png")).then(
+				() => latestImage *= -1
+
+			);
+		}
+		reply.send();
+	})
+
+	// Uses Sharp to create a png image of the render, then clears the pixel data from memory.
+	fastify.post("/render-done", (request, reply) => {
+		console.log("Render done.");
+		console.log("Generating image...");
+		reply.send();
+	})
+}
+
+
+module.exports = {start,exportimage,getCompleationPercent,getLatestImage};

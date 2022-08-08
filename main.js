@@ -18,21 +18,11 @@ let helpWindow;
 
 unhandled();
 
-//Listen for app readyness
-var tmpdir;
-
 Menu.setApplicationMenu(false);
+
+const tmpdir = tmp.dirSync();
+console.log('Dir: ', tmpdir.name);
 tmp.setGracefulCleanup();
-
-tmp.dir(function _tempDirCreated(err, path, cleanupCallback) {
-  if (err) throw err;
- 
-  tmpdir = path;
-  
-  // Manual cleanup
-  cleanupCallback();
-});
-
 
 
 app.on("ready",function(){
@@ -77,7 +67,6 @@ app.on("ready",function(){
         app.quit();
     });
 
-
     mainWindow.on("focus", function(){
         if (helpWindow != null){
             helpWindow.close();
@@ -96,20 +85,22 @@ ipcMain.on("helpClick",function(e,item){
 
 //Catch start server click
 ipcMain.on("startServer",function(e,item){
-    render.start(tmpdir);
+    render.start(tmpdir.name);
     var check = function(){
         var percent = render.getCompleationPercent();
         if (percent > 0){
             mainWindow.webContents.send("startTimer", "arg");
             mainWindow.webContents.send("updatePercent", percent);
             try {
-                var path = tmpdir.concat("/img",render.getYValue(),".png");
+                let imagenum = render.getLatestImage().toString();
+                var path = tmpdir.name.concat("/img",".png");
                 if (fs.existsSync(path)) {
                     mainWindow.webContents.send("updateImage",path);
                 }
             } 
             catch(err) {
-                
+               console.log("/img" + render.getLatestImage().toString() + ".png");
+               console.log("Does not exist");
             }
         }
         if(percent == 100){
