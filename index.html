@@ -73,7 +73,7 @@
 <!-- Custom scripts -->
 <script type="text/javascript">
     window.$ = window.jQuery = require('jquery');
-    
+
     const delay = ms => new Promise(res => setTimeout(res, ms));
 
     let serverStarted = false;
@@ -89,7 +89,7 @@
     let nextIndex = 0;
 
     // include the ipc module to communicate with main process.
-    const ipcRenderer = require('electron').ipcRenderer; 
+        const ipcRenderer = require('electron').ipcRenderer; 
     const ipcMain = require("electron").ipcMain;
 
     // Render logic
@@ -128,7 +128,7 @@
 
     });
 
-    
+
     //help button
     const helpClick = document.getElementById('help');
     helpClick.addEventListener('click', function () {
@@ -148,7 +148,7 @@
         if (!serverStarted){
             serverStarted = true;
             var arg ="secondparam";
-         
+
             ipcRenderer.send("startServer", arg);
             setTimeout(() => { startServer.disabled = true;},500);
         }
@@ -165,7 +165,6 @@
                 }
                 else {
                     x = x + 1;
-                    
                     var timeString = new Date(x * 1000).toISOString().substr(11, 8)
                     timer.innerHTML = timeString;
                     setTimeout(check, 1000); // check again in a second
