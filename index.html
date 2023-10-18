@@ -26,7 +26,7 @@
         <div class="col-md-7">
             <div class="bg-image">
                 <img id="main-img" class="img-fluid" src="./img/grid.png" alt="" style="border-radius: 10px;">
-                <img id="overlay-img" class="mask" src="./img/grid.png" alt="" style="border-radius: 10px;">
+                <canvas id="render-preview" class="mask" src="./img/grid.png" alt="" style="border-radius: 10px;"></canvas>
             </div>
             <button class="mt-4 btn-lg btn btn-white" id="help">Help</button>
             <button class="mt-4 btn-lg btn btn-link float-end" id="exportImage" disabled>
@@ -82,24 +82,64 @@
         $('.card').css('height', ($('#main-img').height() / 2 - 12) + 'px');
     }
     // Button Events
+    const hiddenctx = document.createElement("canvas").getContext("2d");
+
+    const previewctx = document.querySelector("#render-preview").getContext("2d");
+
+    let nextIndex = 0;
+
     // include the ipc module to communicate with main process.
     const ipcRenderer = require('electron').ipcRenderer; 
     const ipcMain = require("electron").ipcMain;
+
+    // Render logic
+    ipcRenderer.on("render-begin", (e, imageSize) => {
+        startTimer()
+        hiddenctx.clearRect(0, 0, imageSize.x, imageSize.y);
+        previewctx.clearRect(0, 0, previewctx.canvas.width, previewctx.canvas.height);
+
+        hiddenctx.canvas.width = imageSize.x;
+        hiddenctx.canvas.height = imageSize.y;
+
+        imageData = hiddenctx.createImageData(imageSize.x, imageSize.y);
+
+        nextIndex = 0;
+        console.log(e, imageSize)
+    })
+
+    function extractBits(number, position, width) {
+        return ((number >> position) & ((1 << width) - 1));
+    }
+
+    ipcRenderer.on("data", (e,data) => {
+        data = JSON.parse(data);
+
+        for (let index = 0; index < data.length; ++index) {
+            const num = data[index];
+            imageData.data[nextIndex++] = extractBits(num, 0, 8);
+            imageData.data[nextIndex++] = extractBits(num, 8, 8);
+            imageData.data[nextIndex++] = extractBits(num, 16, 8);
+            imageData.data[nextIndex++] = extractBits(num, 24, 8);
+        }
+        updatePercentage()
+        hiddenctx.putImageData(imageData, 0, 0);
+
+        previewctx.drawImage(hiddenctx.canvas, 0, 0, previewctx.canvas.width, previewctx.canvas.height);
+
+    });
+
     
     //help button
     const helpClick = document.getElementById('help');
     helpClick.addEventListener('click', function () {
         var arg ="secondparam";
-     
         ipcRenderer.send("helpClick", arg);
     });
 
     //export image
     const exportImage = document.getElementById('exportImage');
     exportImage.addEventListener('click', function () {
-        var arg ="secondparam";
-     
-        ipcRenderer.send("exportImage", arg); 
+        ipcRenderer.send("exportImage", imageData.data); 
     });
 
     //Start server
@@ -115,7 +155,7 @@
     });
 
     const timer = document.getElementById('timer');
-    ipcRenderer.on("startTimer",(e,item)=> {
+    function startTimer() {
         if (!timerRunning){
             timerRunning = true;
             var x = 0;
@@ -133,25 +173,23 @@
             }
             check();
         } 
-    });
+    };
 
     const datapercentage = document.getElementById('datapercentage');
     const datatextpercentage = document.getElementById('datapercentagetext');
-    ipcRenderer.on("updatePercent",function(e,item){
-        datapercentage.setAttribute("data-percentage", item)
-        datatextpercentage.innerHTML = item.toString().concat("%");
-        if (item == 100){
+
+    function updatePercentage(){
+        console.log("update")
+        const percent = Math.round((nextIndex / imageData.data.length) * 100) 
+        console.log(percent)
+        console.log(nextIndex/ imageData.data.length)
+        datapercentage.setAttribute("data-percentage", percent)
+        datatextpercentage.innerHTML = percent.toString().concat("%");
+        if (percent == 100){
             timerRunning = false;
             exportImage.disabled = false;
         }
-    });
-
-
-    const overlayImage = document.getElementById('overlay-img');
-    ipcRenderer.on("updateImage",function(e,item){
-        overlayImage.src = item + "?t=" + Date.now().toString();
-    });
-
+    }
 </script>
 
 </html>

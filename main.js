@@ -1,10 +1,12 @@
 const electron = require("electron");
+const sharp = require("sharp");
 const url = require("url");
 const path = require("path");
 const render = require("./imageRender.js");
 const fs = require("fs");
 const tmp = require("tmp");
 const unhandled = require("electron-unhandled");
+const fastify = require("fastify")()
 
 const { app, BrowserWindow, Menu, ipcMain, dialog, ipcRenderer, shell } =
   electron;
@@ -13,6 +15,7 @@ let mainWindow;
 let helpWindow;
 
 unhandled();
+let imageSize = {}
 
 Menu.setApplicationMenu(false);
 
@@ -33,6 +36,7 @@ app.on("ready", function () {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
+      mainWindow.webContents.openDevTools()
   });
 
   mainWindow.loadURL(
@@ -66,39 +70,53 @@ ipcMain.on("helpClick", function (e, item) {
 
 //Catch start server click
 ipcMain.on("startServer", function (e, item) {
-  render.start(tmpdir.name);
-  var check = function () {
-    var percent = render.getCompleationPercent();
-    if (percent > 0) {
-      mainWindow.webContents.send("startTimer", "arg");
-      mainWindow.webContents.send("updatePercent", percent);
-      try {
-        let imagenum = render.getLatestImage().toString();
-        var path = tmpdir.name.concat("/img", ".png");
-        if (fs.existsSync(path)) {
-          mainWindow.webContents.send("updateImage", path);
-        }
-      } catch (err) {
-        console.log("/img" + render.getLatestImage().toString() + ".png");
-        console.log("Does not exist");
-      }
+    console.log("server started")
+  fastify.listen({ port: 8081 }, (err, address) => {
+    if (err) {
+      console.error(err);
+      process.exit();
     }
-    if (percent == 100) {
-      return true;
-    } else {
-      setTimeout(check, 500); // check again in a second
-    }
-  };
-  check();
+    console.log(`Server is now listening on address: ${address}`);
+  });
+
+  // Get request for if the user opens the url in their web browser.
+  fastify.get("/", (request, reply) => {
+    reply.send("RoRenderV3 server is running.");
+  });
+
+  // Resets the render data and sets it to the new image size.
+  fastify.post("/render-begin", (request, reply) => {
+      console.log("start")
+    imageSize = request.body.imageSize;
+    mainWindow.webContents.send("render-begin", imageSize);
+    reply.send();
+  });
+
+  // Stores the received pixel data in the render data.
+  fastify.post("/data", (request, reply) => {
+
+      console.log("data")
+    mainWindow.webContents.send("data", request.body);
+    reply.send();
+  });
+
+  // Uses Sharp to create a png image of the render, then clears the pixel data from memory.
+  fastify.post("/render-done", (request, reply) => {
+      console.log("Done")
+    reply.send();
+  });
 });
 
 //Catch export image click
-ipcMain.on("exportImage", function (e, item) {
-  render.exportimage(
-    dialog.showSaveDialogSync(mainWindow, {
+ipcMain.on("exportImage", function (e, pixelData) {
+  const image = sharp(pixelData, {
+    raw: {
+      width: imageSize.x,
+      height: imageSize.y,
+      channels: 4,
+    }}).toFile(dialog.showSaveDialogSync(mainWindow, {
       title: "Save image",
       buttonLabel: "Save",
       filters: [{ name: "png", extensions: ["png"] }],
-    })
-  );
+    }))
 });
