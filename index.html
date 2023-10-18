@@ -139,7 +139,7 @@
     //export image
     const exportImage = document.getElementById('exportImage');
     exportImage.addEventListener('click', function () {
-        ipcRenderer.send("exportImage", imageData.data); 
+        ipcRenderer.send("exportImage", hiddenctx.canvas.toDataURL()); 
     });
 
     //Start server

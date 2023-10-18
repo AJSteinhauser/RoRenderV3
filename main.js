@@ -108,15 +108,15 @@ ipcMain.on("startServer", function (e, item) {
 });
 
 //Catch export image click
-ipcMain.on("exportImage", function (e, pixelData) {
-  const image = sharp(pixelData, {
-    raw: {
-      width: imageSize.x,
-      height: imageSize.y,
-      channels: 4,
-    }}).toFile(dialog.showSaveDialogSync(mainWindow, {
-      title: "Save image",
-      buttonLabel: "Save",
-      filters: [{ name: "png", extensions: ["png"] }],
-    }))
+ipcMain.on("exportImage", function (e, dataURL) {
+    fs.writeFile(
+        dialog.showSaveDialogSync(mainWindow, {
+            title: "Save image",
+            buttonLabel: "Save",
+            filters: [{ name: "png", extensions: ["png"] }],
+        }),
+        Buffer.from(dataURL.split(",")[1], 'base64'),
+        () => {console.log("done")}
+    )
+
 });
