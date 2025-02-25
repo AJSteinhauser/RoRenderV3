@@ -83,10 +83,11 @@
     }
     // Button Events
     const hiddenctx = document.createElement("canvas").getContext("2d");
+    let imageData
 
     const previewctx = document.querySelector("#render-preview").getContext("2d");
 
-    let nextIndex = 0;
+    let dataIndex = 0;
 
     // include the ipc module to communicate with main process.
         const ipcRenderer = require('electron').ipcRenderer; 
@@ -101,9 +102,9 @@
         hiddenctx.canvas.width = imageSize.x;
         hiddenctx.canvas.height = imageSize.y;
 
-        imageData = hiddenctx.createImageData(imageSize.x, imageSize.y);
+        imageData = new Uint8ClampedArray(imageSize.x * imageSize.y * 4);
 
-        nextIndex = 0;
+        dataIndex = 0;
         console.log(e, imageSize)
     })
 
@@ -112,20 +113,19 @@
     }
 
     ipcRenderer.on("data", (e,data) => {
-        data = JSON.parse(data);
-
         for (let index = 0; index < data.length; ++index) {
-            const num = data[index];
-            imageData.data[nextIndex++] = extractBits(num, 0, 8);
-            imageData.data[nextIndex++] = extractBits(num, 8, 8);
-            imageData.data[nextIndex++] = extractBits(num, 16, 8);
-            imageData.data[nextIndex++] = extractBits(num, 24, 8);
+            const rawValue = data[index];
+            const initialOffset = index + dataIndex
+            imageData[initialOffset] = extractBits(rawValue, 0, 8);
+            imageData[initialOffset + 1] = extractBits(rawValue, 8, 8);
+            imageData[initialOffset + 2] = extractBits(rawValue, 16, 8);
+            imageData[initialOffset + 3] = extractBits(rawValue, 24, 8);
         }
+        dataIndex += data.length
         updatePercentage()
-        hiddenctx.putImageData(imageData, 0, 0);
-
+        const image = new ImageData(imageData, hiddenctx.canvas.width, hiddenctx.canvas.height);
+        hiddenctx.putImageData(image, 0, 0);
         previewctx.drawImage(hiddenctx.canvas, 0, 0, previewctx.canvas.width, previewctx.canvas.height);
-
     });
 
 
@@ -179,9 +179,8 @@
 
     function updatePercentage(){
         console.log("update")
-        const percent = Math.round((nextIndex / imageData.data.length) * 100) 
+        const percent = Math.round((dataIndex / imageData.length) * 100) 
         console.log(percent)
-        console.log(nextIndex/ imageData.data.length)
         datapercentage.setAttribute("data-percentage", percent)
         datatextpercentage.innerHTML = percent.toString().concat("%");
         if (percent == 100){
