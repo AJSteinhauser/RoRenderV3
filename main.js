@@ -21,7 +21,7 @@ app.on("ready", function () {
             nodeIntegration: true,
         },
         show: false,
-        resizable: false,
+        resizable: true,
         height: 540,
         width: 768,
     });
