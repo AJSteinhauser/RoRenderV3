@@ -14,6 +14,9 @@ unhandled();
 let imageSize = {}
 
 Menu.setApplicationMenu(false);
+ipcMain.handle('get-platform', () => process.platform);
+
+const isWindows = process.platform === "win32"
 
 app.on("ready", function () {
     mainWindow = new BrowserWindow({
@@ -22,8 +25,8 @@ app.on("ready", function () {
         },
         show: false,
         resizable: true,
-        height: 540,
-        width: 768,
+        height: isWindows ? 683 : 540,
+        width: isWindows ? 1024 : 768,
     });
 
     mainWindow.once("ready-to-show", () => {
