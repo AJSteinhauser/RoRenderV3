@@ -1,4 +1,4 @@
-> Check out RoRenderv4 rorender.com This application will not recieve any more updates
+> This is the legacy free version of RoRender, check out [RoRenderv4](https://rorender.com/v3).  This application will not recieve any more updates.
 
 # RoRenderV3
 
